@@ -1,16 +1,50 @@
-# Количество выходных дней в течение поездки
-fun_work_days <- function(start.date,end.date,saturday=TRUE) {
-  n.days <- ceiling(new_interval(start.date,end.date) / ddays(1) )
-  dates <- start.date + 0:n.days * ddays(1)
-  week.days <- wday(dates)
+library(lubridate)
+# library(plyr) # not used 
+
+setwd("~/courseworks/2013/annette/airfares/data/")
+h <- read.csv(file="all_fly_data_dummy.csv")
+
+
+# testing ideas...
+# a <- h$dep_time.x[1] # departure date from Russia
+# b <- h$arr_time.y[1] # arrival (return) date to Russia
+# 
+# a.date <- as.Date(a)
+# b.date <- as.Date(b)
+# seq(a,b,"days")
+# wday(seq(a.date,b.date,"days"))
+
+working_days_scalar <- function(start.date,end.date, working.days = 2:6) {
+  # this function works only with scalar arguments 
   
-  res <- sum(week.days==1)
-  if (saturday) res <- res + sum(week.days==7)
-  return(res)
+  # start.date should be one date (not a vector)
+  # end.date should be one date (not a vector)
+  # otherwise the problem is in seq(a,b,"days"), it will have varying length
+  
+  # working.days --- the vector of days when I presumably work :)
+  # 1 is Sunday, 7 is Saturday, so by default 2:6
+  
+  a <- as.Date(start.date) # remove time
+  b <- as.Date(end.date) # remove time
+  
+  # the vector of all weekdays between a and b
+  wdays.vector <- wday(seq(a,b,"days"))
+  
+  # the number of working days
+  result <- sum(wdays.vector %in% working.days )
+  
+  return(result)
 }
 
-data$index <- 1:nrow(data)
+# vectorizing the created function
+working_days <- Vectorize(working_days_scalar, vectorize.args=c("start.date","end.date"))
 
-data <- ddply(data, ~index ,transform, 
-               fun_work_days(dep_time.x,arr_time.y),
-               .progress="text")
+# now one line!
+start.time <- now()
+
+h$work.days <- working_days(h$dep_time.x,h$arr_time.y)
+
+end.time <- now()
+
+print(end.time-start.time)
+# Ubuntu 12.04, dell inspiron n5110 with 4 Gb RAM ~45 seconds
